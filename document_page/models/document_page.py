@@ -109,37 +109,29 @@ class DocumentPage(models.Model):
     complete_name = fields.Char(
         "Complete Name", compute="_compute_complete_name", store=True
     )
-    
-    sequence = fields.Integer(
-            string='Sequence', 
-            default=10, 
-            help="Used to organise the category.")
 
-    parent_path = fields.Char(index=True)
-    complete_name = fields.Char(
-        'Complete Name', compute='_compute_complete_name',
-        store=True)
-    
-    image = fields.Binary(
-        "Image", attachment=True,
-    )
-    
-    color = fields.Integer(string='Color Index')
+    image = fields.Binary("Image", attachment=True,)
 
+    color = fields.Integer(string="Color Index")
 
-    @api.multi 
+    @api.multi
     def write(self, vals):
         child_ids = self
-        if vals.get('color', False) and len(vals) ==1:
-            child_ids = self.search([('type', '=', 'category'), ('parent_id', 'child_of', self.ids)])
+        if vals.get("color", False) and len(vals) == 1:
+            child_ids = self.search(
+                [("type", "=", "category"),
+                 ("parent_id", "child_of", self.ids)]
+            )
         res = super(DocumentPage, child_ids).write(vals)
         return res
 
-    @api.depends('name', 'parent_id.complete_name')
+    @api.depends("name", "parent_id.complete_name")
     def _compute_complete_name(self):
         for category in self:
             if category.parent_id:
-                category.complete_name = '%s / %s' % (category.parent_id.complete_name, category.name)
+                category.complete_name = "{} / {}".format(
+                    category.parent_id.complete_name, category.name,
+                )
             else:
                 category.complete_name = category.name
 
@@ -218,8 +210,8 @@ class DocumentPage(models.Model):
     @api.multi
     def _inverse_content(self):
         for rec in self:
-            if rec.type == "content" and \
-                rec.content != rec.history_head.content:
+            if rec.type == "content" \
+                    and rec.content != rec.history_head.content:
                 rec._create_history(
                     {
                         "name": rec.draft_name,
@@ -259,8 +251,3 @@ class DocumentPage(models.Model):
         res = super().unlink()
         menus.unlink()
         return res
-
-    @api.multi 
-    def open_childs(self):
-        self.ensure_one()
-        action = self.env.ref('document_page.')
